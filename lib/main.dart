@@ -27,7 +27,7 @@ class MyApp extends StatelessWidget {
             backgroundColor: Color.fromARGB(255, 86, 85, 85),
           )),
       title: 'Flutter connect to Firebasee',
-      home: Students(),
+      home: StudentsView(),
     );
   }
 }
