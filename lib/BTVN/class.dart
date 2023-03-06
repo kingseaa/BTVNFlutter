@@ -3,36 +3,35 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:uuid/uuid.dart';
 
-class StudentsView extends StatefulWidget {
-  StudentsView({Key? key}) : super(key: key);
-  List<String> list = <String>['Male', 'Female'];
+class ClassView extends StatefulWidget {
+  const ClassView({Key? key}) : super(key: key);
   final uuid = const Uuid();
 
   @override
-  State<StudentsView> createState() => _StudentsViewState();
+  State<ClassView> createState() => _ClassViewState();
 }
 
-class _StudentsViewState extends State<StudentsView> {
+class _ClassViewState extends State<ClassView> {
   // text fields' controllers
-  final TextEditingController _idSVController = TextEditingController();
-  final TextEditingController _dateOfBirthController = TextEditingController();
-  final TextEditingController _genderController = TextEditingController();
-  final TextEditingController _homeTownController = TextEditingController();
+  final TextEditingController _idClass = TextEditingController();
+  final TextEditingController _nameClass = TextEditingController();
+  final TextEditingController _amountStudent = TextEditingController();
+  final TextEditingController _maGV = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
-  final CollectionReference _students =
-      FirebaseFirestore.instance.collection('students');
+  final CollectionReference _lecturer =
+      FirebaseFirestore.instance.collection('class');
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(
-          title: const Text('Students'),
+          title: const Text('Class'),
         ),
 
         // Using StreamBuilder to display all products from Firestore in real-time
         body: StreamBuilder(
-          stream: _students.snapshots(),
+          stream: _lecturer.snapshots(),
           builder: (context, AsyncSnapshot<QuerySnapshot> streamSnapshot) {
             if (streamSnapshot.hasData) {
               return ListView.builder(
@@ -54,20 +53,22 @@ class _StudentsViewState extends State<StudentsView> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'ID: ${documentSnapshot['idsv']}',
+                                'Ma GV: ${documentSnapshot['magv']}',
                               ),
                               const SizedBox(
                                 height: 5,
                               ),
-                              Text('Date: ${documentSnapshot['date']}'),
+                              Text('Id class: ${documentSnapshot['idclass']}'),
                               const SizedBox(
                                 height: 5,
                               ),
-                              Text('Gender: ${documentSnapshot['gender']}'),
+                              Text(
+                                  'className: ${documentSnapshot['classname']}'),
                               const SizedBox(
                                 height: 5,
                               ),
-                              Text('Hometown: ${documentSnapshot['hometown']}'),
+                              Text(
+                                  'Amount student: ${documentSnapshot['amount']}'),
                               const SizedBox(
                                 height: 5,
                               ),
@@ -83,9 +84,9 @@ class _StudentsViewState extends State<StudentsView> {
                               // This icon button is used to delete a single product
                               IconButton(
                                   icon: const Icon(Icons.delete),
-                                  onPressed: () => _deleteProduct(
+                                  onPressed: () => _deleteLecturer(
                                       documentSnapshot.id,
-                                      documentSnapshot['idsv'])),
+                                      documentSnapshot['idclass'])),
                             ],
                           ),
                         ],
@@ -115,22 +116,20 @@ class _StudentsViewState extends State<StudentsView> {
   // when functions have >= 2 parameters.
 
   Future<void> _createOrUpdate([DocumentSnapshot? documentSnapshot]) async {
-    String dropdownValue = widget.list.first;
-
     String action = 'create';
     if (documentSnapshot != null) {
       action = 'update';
-      _idSVController.text = documentSnapshot['idsv'].toString();
-      _genderController.text = documentSnapshot['gender'];
-      _dateOfBirthController.text = documentSnapshot['date'];
-      _homeTownController.text = documentSnapshot['hometown'];
+      _idClass.text = documentSnapshot['idclass'].toString();
+      _amountStudent.text = documentSnapshot['amount'];
+      _nameClass.text = documentSnapshot['classname'];
+      _maGV.text = documentSnapshot['magv'].toString();
     }
 
-    await _buildBottomSheet(dropdownValue, action, documentSnapshot);
+    await _buildBottomSheet(action, documentSnapshot);
   }
 
-  Future<dynamic> _buildBottomSheet(String dropdownValue, String action,
-      DocumentSnapshot<Object?>? documentSnapshot) {
+  Future<dynamic> _buildBottomSheet(
+      String action, DocumentSnapshot<Object?>? documentSnapshot) {
     return showModalBottomSheet(
         isScrollControlled: true,
         context: context,
@@ -151,13 +150,13 @@ class _StudentsViewState extends State<StudentsView> {
                     child: Column(
                       children: [
                         TextFormField(
-                          controller: _idSVController,
+                          controller: _idClass,
                           keyboardType: TextInputType.number,
                           inputFormatters: [
                             FilteringTextInputFormatter.allow(RegExp(r'[0-9]')),
                           ],
                           decoration:
-                              const InputDecoration(labelText: 'Id students'),
+                              const InputDecoration(labelText: 'Id Class'),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
                               return 'Please enter your Id';
@@ -168,70 +167,41 @@ class _StudentsViewState extends State<StudentsView> {
                           },
                         ),
                         TextFormField(
-                          keyboardType: const TextInputType.numberWithOptions(
-                              decimal: true),
-                          controller: _dateOfBirthController,
+                          keyboardType: TextInputType.text,
+                          controller: _nameClass,
                           decoration: const InputDecoration(
-                            labelText: 'Date of birth',
+                            labelText: 'Class name',
                           ),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return 'Please enter your Date of birth';
+                              return 'Please enter your Class name';
                             }
                             return null;
                           },
                         ),
-                        // TextFormField(
-                        //   controller: _genderController,
-                        //   keyboardType: TextInputType.text,
-                        //   decoration:
-                        //       const InputDecoration(labelText: 'Gender'),
-                        //   validator: (value) {
-                        //     if (value == null || value.isEmpty) {
-                        //       return 'Please enter your gender';
-                        //     } else if (value.contains('male') ||
-                        //         value.contains('female')) {
-                        //       return 'Male or Female';
-                        //     }
-                        //     // else if (!value.contains('@')) {
-                        //     //   return 'Must have @';
-                        //     // }
-                        //     return null;
-                        //   },
-                        // ),
-                        DropdownButton<String>(
-                          value: dropdownValue,
-                          icon: const Icon(Icons.arrow_downward),
-                          elevation: 16,
-                          style: const TextStyle(color: Colors.deepPurple),
-                          underline: Container(
-                            height: 2,
-                            color: Colors.deepPurpleAccent,
-                          ),
-                          onChanged: (String? value) {
-                            // This is called when the user selects an item.
-                            print('change $value');
-                            setState(() {
-                              dropdownValue = value!;
-                            });
-                          },
-                          items: widget.list
-                              .map<DropdownMenuItem<String>>((String value) {
-                            return DropdownMenuItem<String>(
-                              value: value,
-                              child: Text(value),
-                            );
-                          }).toList(),
-                        ),
-                        // const DropdownButtonExample(),
                         TextFormField(
-                          controller: _homeTownController,
-                          keyboardType: TextInputType.text,
+                          controller: _amountStudent,
+                          keyboardType: TextInputType.number,
                           decoration:
-                              const InputDecoration(labelText: 'Hometown'),
+                              const InputDecoration(labelText: 'Amount'),
                           validator: (value) {
                             if (value == null || value.isEmpty) {
-                              return 'Please enter your Hometown';
+                              return 'Please enter your Amount';
+                            }
+                            // else if (!value.contains('@')) {
+                            //   return 'Must have @';
+                            // }
+                            return null;
+                          },
+                        ),
+                        TextFormField(
+                          controller: _maGV,
+                          keyboardType: TextInputType.number,
+                          decoration:
+                              const InputDecoration(labelText: 'Id Lecturer'),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Please enter your Lecturer';
                             }
                             return null;
                           },
@@ -244,38 +214,38 @@ class _StudentsViewState extends State<StudentsView> {
                 ElevatedButton(
                   child: Text(action == 'create' ? 'Create' : 'Update'),
                   onPressed: () async {
-                    final int? idSv = int.tryParse(_idSVController.text);
-                    final String gender = dropdownValue;
-                    // final String gender = _genderController.text;
-                    final String dateOfBirth = _dateOfBirthController.text;
-                    final String homeTown = _homeTownController.text;
+                    final int? id = int.tryParse(_idClass.text);
+                    final String amount = _amountStudent.text;
+                    final String classname = _nameClass.text;
+                    final int? magv = int.tryParse(_maGV.text);
                     if (_formKey.currentState!.validate()) {
                       if (action == 'create') {
                         // Persist a new product to Firestore
-                        await _students.add({
+                        await _lecturer.add({
                           'uuid': widget.uuid.v4(),
-                          "idsv": idSv,
-                          "date": dateOfBirth,
-                          "gender": gender,
-                          "hometown": homeTown
+                          "idclass": id,
+                          "classname": classname,
+                          "amount": amount,
+                          "magv": magv
                         });
                       }
                       if (action == 'update') {
                         // Update the product
 
-                        await _students.doc(documentSnapshot!.id).update({
-                          "idsv": idSv,
-                          "date": dateOfBirth,
-                          "gender": gender,
-                          "hometown": homeTown
+                        await _lecturer.doc(documentSnapshot!.id).update({
+                          'uuid': widget.uuid.v4(),
+                          "idclass": id,
+                          "classname": classname,
+                          "amount": amount,
+                          "magv": magv
                         });
                       }
 
                       // Clear the text fields
-                      _idSVController.text = '';
-                      _genderController.text = '';
-                      // _genderController.text = '';
-                      _dateOfBirthController.text = '';
+                      _idClass.text = '';
+                      _amountStudent.text = '';
+                      _maGV.text = '';
+                      _nameClass.text = '';
 
                       // Hide the bottom sheet
                       Navigator.pop(context);
@@ -296,8 +266,8 @@ class _StudentsViewState extends State<StudentsView> {
         });
   }
 
-  // Deleteing a product by id
-  Future<void> _deleteProduct(String productId, int Id) async {
+  // Deleteing a lecturer by id
+  Future<void> _deleteLecturer(String lecturerId, int Id) async {
     await showDialog(
         context: context,
         // Can't GestureDetector outside dialog
@@ -308,7 +278,7 @@ class _StudentsViewState extends State<StudentsView> {
                   child: const Text('Oke'),
                   onPressed: () {
                     Navigator.of(context).pop(true);
-                    _students.doc(productId).delete();
+                    _lecturer.doc(lecturerId).delete();
                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
                         elevation: 20,
                         duration: Duration(seconds: 2),
